@@ -1,12 +1,12 @@
 # btc-spark-keys-gen
 
-A TypeScript library for generating Bitcoin Spark keys with maximum compatibility. This library provides utilities for deriving HD keys, generating key pairs, and creating Spark addresses from various Bitcoin address formats.
+A TypeScript library for generating Bitcoin Spark keys with maximum compatibility. This library provides utilities for deriving HD keys from seeds using various Bitcoin derivation paths and creating Spark addresses from Bitcoin addresses.
 
 ## Features
 
-- 🔐 **HD Key Derivation**: Generate hierarchical deterministic keys from seeds
+- 🔐 **HD Key Derivation**: Generate hierarchical deterministic keys from seeds using multiple derivation paths
 - 🎯 **Spark Address Generation**: Convert Bitcoin addresses to Spark addresses
-- 🔄 **Multiple Address Formats**: Support for P2TR (Taproot) addresses
+- 🔄 **Multiple Derivation Paths**: Support for Native Segwit, Wrapped Segwit, Legacy Bitcoin, and Taproot
 - 🛡️ **Type Safety**: Full TypeScript support with comprehensive type definitions
 - 📦 **Dual Format**: Supports both CommonJS and ES modules
 - 🧪 **Well Tested**: Comprehensive test suite with high coverage
@@ -19,25 +19,31 @@ npm install btc-spark-keys-gen
 
 ## Usage
 
-### Basic Key Generation
+### HD Key Derivation
 
 ```typescript
 import {
-  generateKeyPair,
-  generateHDKey,
+  NativeSegwitKeysGenerator,
+  WrappedSegwitKeysGenerator,
+  LegacyBitcoinKeysGenerator,
+  TaprootOutputKeysGenerator,
   getSparkAddressFromPublicKey,
   getSparkAddressFromTaproot,
 } from "btc-spark-keys-gen";
 
-// Generate a random key pair
-const keyPair = generateKeyPair();
-console.log("Private Key:", keyPair.privateKey);
-console.log("Public Key:", keyPair.publicKey);
-
-// Generate HD key from seed
+// Derive keys using Native Segwit derivation path
+const nativeSegwitGenerator = new NativeSegwitKeysGenerator(true); // useAddressIndex: true
 const seed = new Uint8Array(32); // Your 32-byte seed
-const hdKey = generateHDKey(seed);
-console.log("HD Key:", hdKey);
+const accountNumber = 0;
+
+const derivedKeys = await nativeSegwitGenerator.deriveKeysFromSeed(
+  seed,
+  accountNumber
+);
+console.log("Identity Key:", derivedKeys.identityKey);
+console.log("Signing HD Key:", derivedKeys.signingHDKey);
+console.log("Deposit Key:", derivedKeys.depositKey);
+console.log("Static Deposit HD Key:", derivedKeys.staticDepositHDKey);
 ```
 
 ### Spark Address Generation
@@ -54,47 +60,25 @@ const sparkAddress = getSparkAddressFromTaproot(taprootAddress);
 console.log("Spark Address:", sparkAddress); // spark1...
 ```
 
-### HD Key Derivation
+### Different Derivation Paths
 
 ```typescript
-import { DerivationPathKeysGenerator } from "btc-spark-keys-gen";
+// Native Segwit (P2WPKH) - m/84'/0'/0'/0/?
+const nativeSegwitGenerator = new NativeSegwitKeysGenerator(true);
 
-// Create a derivation path generator
-const generator = new DerivationPathKeysGenerator(true); // useAddressIndex: true
+// Wrapped Segwit (P2SH-P2WPKH) - m/49'/0'/0'/0/?
+const wrappedSegwitGenerator = new WrappedSegwitKeysGenerator(true);
 
-// Derive keys from seed
-const seed = new Uint8Array(32); // Your seed
-const accountNumber = 0;
+// Legacy Bitcoin (P2PKH) - m/44'/0'/0'/0/?
+const legacyGenerator = new LegacyBitcoinKeysGenerator(true);
 
-const derivedKeys = await generator.deriveKeysFromSeed(seed, accountNumber);
-console.log("Identity Key:", derivedKeys.identityKey);
-console.log("Signing HD Key:", derivedKeys.signingHDKey);
-console.log("Deposit Key:", derivedKeys.depositKey);
+// Taproot (P2TR) - m/86'/0'/0'/0/?
+const taprootGenerator = new TaprootOutputKeysGenerator(true);
 ```
 
 ## API Reference
 
 ### Functions
-
-#### `generateKeyPair(): KeyPair`
-
-Generates a new random key pair.
-
-**Returns:**
-
-- `KeyPair`: Object containing `privateKey` and `publicKey` as `Uint8Array`
-
-#### `generateHDKey(seed: Uint8Array): DerivedHDKey`
-
-Generates an HD key from a seed.
-
-**Parameters:**
-
-- `seed: Uint8Array` - The seed for key generation
-
-**Returns:**
-
-- `DerivedHDKey`: Object containing `hdKey`, `privateKey`, and `publicKey`
 
 #### `getSparkAddressFromPublicKey(publicKey: Uint8Array, network: 'mainnet' | 'regtest'): SparkAddress`
 
@@ -102,7 +86,7 @@ Generates a Spark address from a public key.
 
 **Parameters:**
 
-- `publicKey: Uint8Array` - The public key
+- `publicKey: Uint8Array` - The public key (must be 33 bytes)
 - `network: 'mainnet' | 'regtest'` - The network type
 
 **Returns:**
@@ -123,13 +107,49 @@ Converts a Taproot address to a Spark address.
 
 ### Classes
 
-#### `DerivationPathKeysGenerator`
+#### `NativeSegwitKeysGenerator`
 
-A class for generating keys using specific derivation paths.
+A class for generating keys using Native Segwit derivation paths (m/84'/0'/0'/0/? or m/84'/0'/?'/0/0).
 
 **Constructor:**
 
-- `new DerivationPathKeysGenerator(useAddressIndex: boolean)`
+- `new NativeSegwitKeysGenerator(useAddressIndex: boolean)`
+
+**Methods:**
+
+- `deriveKeysFromSeed(seed: Uint8Array, accountNumber: number): Promise<DerivedKeys>`
+
+#### `WrappedSegwitKeysGenerator`
+
+A class for generating keys using Wrapped Segwit derivation paths (m/49'/0'/0'/0/? or m/49'/0'/?'/0/0).
+
+**Constructor:**
+
+- `new WrappedSegwitKeysGenerator(useAddressIndex: boolean)`
+
+**Methods:**
+
+- `deriveKeysFromSeed(seed: Uint8Array, accountNumber: number): Promise<DerivedKeys>`
+
+#### `LegacyBitcoinKeysGenerator`
+
+A class for generating keys using Legacy Bitcoin derivation paths (m/44'/0'/0'/0/? or m/44'/0'/?'/0/0).
+
+**Constructor:**
+
+- `new LegacyBitcoinKeysGenerator(useAddressIndex: boolean)`
+
+**Methods:**
+
+- `deriveKeysFromSeed(seed: Uint8Array, accountNumber: number): Promise<DerivedKeys>`
+
+#### `TaprootOutputKeysGenerator`
+
+A class for generating keys using Taproot derivation paths (m/86'/0'/0'/0/? or m/86'/0'/?'/0/0).
+
+**Constructor:**
+
+- `new TaprootOutputKeysGenerator(useAddressIndex?: boolean)`
 
 **Methods:**
 
@@ -147,6 +167,13 @@ type DerivedHDKey = {
   hdKey: HDKey;
   privateKey: Uint8Array;
   publicKey: Uint8Array;
+};
+
+type DerivedKeys = {
+  identityKey: KeyPair;
+  signingHDKey: DerivedHDKey;
+  depositKey: KeyPair;
+  staticDepositHDKey: DerivedHDKey;
 };
 
 type SparkAddress = `spark1${string}` | `sparkrt1${string}`;
