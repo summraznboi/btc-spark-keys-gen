@@ -1,6 +1,6 @@
 {
   "name": "btc-spark-keys-gen",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Bitcoin Spark keys generator with maximum compatibility",
   "type": "module",
   "main": "./dist/index.cjs",
